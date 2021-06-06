@@ -34,7 +34,7 @@
 //! let mut set = HashedSet::with_capacity_and_hasher(100, HashBuildHasher::default());
 //! assert!(set.insert(0));
 //! ```
-
+#![no_std]
 #![doc(test(attr(forbid(warnings))))]
 #![warn(unused, missing_copy_implementations, missing_docs)]
 #![deny(
@@ -70,8 +70,10 @@
     unknown_crate_types
 )]
 
-use std::hash::{BuildHasherDefault, Hasher};
-
+use core::hash::{BuildHasherDefault, Hasher};
+#[allow(unused_imports)]
+#[macro_use]
+extern crate alloc;
 /// A hasher which does minimal work to create the required `u64` output under the assumption that
 /// the input is already a hash digest or otherwise already suitable for use as a key in a `HashSet`
 /// or `HashMap`.
@@ -99,16 +101,18 @@ impl Hasher for HashHasher {
 pub type HashBuildHasher = BuildHasherDefault<HashHasher>;
 
 /// Alias for a `std::collections::HashMap<K, V, HashBuildHasher>`.
-pub type HashedMap<K, V> = ::std::collections::HashMap<K, V, HashBuildHasher>;
+pub type HashedMap<K, V> = hashbrown::HashMap<K, V, HashBuildHasher>;
 
 /// Alias for a `std::collections::HashSet<K, HashBuildHasher>`.
-pub type HashedSet<K> = ::std::collections::HashSet<K, HashBuildHasher>;
+pub type HashedSet<K> = hashbrown::HashSet<K, HashBuildHasher>;
 
 #[cfg(test)]
 mod tests {
     use super::{HashBuildHasher, HashHasher, HashedMap, HashedSet};
     use rand::{thread_rng, Rng};
-    use std::hash::{Hash, Hasher};
+    use core::hash::{Hash, Hasher};
+
+    use alloc::vec::Vec;
 
     #[test]
     fn hasher() {
@@ -164,8 +168,8 @@ mod tests {
         let mut set1 = HashedSet::<u64>::default();
         let mut set2 = HashedSet::default();
 
-        let mut set3 = ::std::collections::HashSet::new();
-        let mut set4 = ::std::collections::HashSet::new();
+        let mut set3 = hashbrown::HashSet::new();
+        let mut set4 = hashbrown::HashSet::new();
 
         let mut rng = thread_rng();
         for _ in 0..100 {
@@ -195,18 +199,18 @@ mod tests {
     #[test]
     // This checks for regressions to https://github.com/Fraser999/Hash-Hasher/issues/1
     fn avoid_tending_towards_max_value() {
-        let h1 = hash(&[u64::max_value()]);
-        assert_ne!(u64::max_value(), h1);
+        let h1 = hash(&[u64::MAX]);
+        assert_ne!(u64::MAX, h1);
 
-        let h2 = hash(&[u64::max_value(), u64::max_value()]);
-        assert_ne!(u64::max_value(), h2);
+        let h2 = hash(&[u64::MAX, u64::MAX]);
+        assert_ne!(u64::MAX, h2);
         assert_ne!(h1, h2, "\nh1: {:b}\nh2: {:b}\n", h1, h2);
 
         let h3 = hash(&[
-            [u64::max_value(), u64::max_value()],
-            [u64::max_value(), u64::max_value()],
+            [u64::MAX, u64::MAX],
+            [u64::MAX, u64::MAX],
         ]);
-        assert_ne!(u64::max_value(), h3);
+        assert_ne!(u64::MAX, h3);
         assert_ne!(h1, h3, "\nh1: {:b}\nh3: {:b}\n", h1, h3);
         assert_ne!(h2, h3, "\nh2: {:b}\nh3: {:b}\n", h2, h3);
     }
